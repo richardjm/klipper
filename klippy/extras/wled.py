@@ -3,11 +3,7 @@
 # Copyright (C) 2021 Richard Mitchell <richardjm+klipper@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-import json, logging, Queue as queue, threading, httplib
-try:
-    import urlparse
-except:
-    import urllib.parse as urlparse
+import json, logging, Queue as queue, threading, requests
 
 MAX_MCU_SIZE = 500
 
@@ -17,14 +13,7 @@ class WLED:
         self.name = config.get_name().split()[1]
         # Read config
         self.debug = config.get('debug', False)
-        self.url = urlparse.urlparse(config.get('url'))
-        self.port = None
-        self.usehttps = self.url.scheme == 'https'
-        if self.url.netloc.find(':') == -1:
-            if self.usehttps:
-                self.port = 443
-            else:
-                self.port = 80
+        self.url = config.get('url')
         self.timeout = config.getfloat('timeout', 2., minval=0.1, maxval=10.)
         self.on_ps = config.getint('on_ps', -1, minval=-1, maxval=65535)
 
@@ -78,40 +67,22 @@ class WLED:
 
     def _wled_send(self, state):
         try:
-            state = json.dumps(state)
+            if self.debug:
+                logging.info('WLED: url:%s json:%s', self.url, state)
+
+            response = requests.post(self.url, json=state,
+                                     timeout=self.timeout, stream=False)
 
             if self.debug:
-                logging.info('WLED: host:%s json:%s', self.url.netloc, state)
-
-            if self.usehttps:
-                conn = httplib.HTTPSConnection(self.url.netloc, self.port,
-                        timeout=self.timeout)
-            else:
-                conn = httplib.HTTPConnection(self.url.netloc, self.port,
-                        timeout=self.timeout)
-            conn.connect()
-            request = conn.putrequest('POST', self.url.path)
-            conn.putheader('Content-Type', 'application/json')
-            conn.putheader('Content-Length', len(state))
-            conn.endheaders()
-            conn.send(state)
-
-            response = conn.getresponse()
-
-            # Return information not used currently
-            data = 'Not read'
-            #data = response.read()
-            conn.close()
-            if self.debug:
-                logging.info('WLED: host:%s response:%s status:%d',
-                             self.url.netloc, data, response.status)
+                logging.info('WLED: url:%s status:%d',
+                             self.url, response.status_code)
         except Exception as e:
            logging.error('Failure when setting wled: %s', e)
 
     def _send_consumer(self):
         while True:
             if self.debug:
-                logging.info('WLED: host:%s waiting', self.url.netloc)
+                logging.info('WLED: url:%s waiting', self.url)
             state = self.bg_queue.get() # Block until item on queue
             if state is None:
                 break

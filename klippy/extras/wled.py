@@ -67,7 +67,7 @@ class WLED:
         # if self.debug:
         #     logging.info('WLED: color_data:%s self.color_data:%s', color_data,
         #                 self.color_data)
-            
+
     def _wled_send(self, state):
         try:
             if self.debug:

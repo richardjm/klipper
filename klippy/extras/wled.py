@@ -64,7 +64,10 @@ class WLED:
         else:
             elem_size = len(color_data)
             self.color_data[(index-1)*elem_size:index*elem_size] = color_data
-
+        # if self.debug:
+        #     logging.info('WLED: color_data:%s self.color_data:%s', color_data,
+        #                 self.color_data)
+            
     def _wled_send(self, state):
         try:
             if self.debug:
@@ -135,6 +138,7 @@ class WLED:
                 self.send_full_color_data = False
                 self._send_producer({'seg':{'i':[0,self.chain_count-1, elem]}})
             elif self.send_full_color_data:
+                # Send a full set of color data (e.g. previous preset)
                 state = {'seg':{'i':[]}}
                 cdata = []
                 for i in range(self.chain_count):
@@ -149,7 +153,8 @@ class WLED:
             else:
                 # Only one pixel has changed so send just that one
                 elem = []
-                for p in self.color_data[index-1:index-1+elem_size]:
+                for p in self.color_data[(index - 1) * elem_size
+                                         :(index - 1) * elem_size + elem_size]:
                     elem.append(p)
                 self._send_producer({'seg':{'i':[index, elem]}})
         elif index is not None:

@@ -3,7 +3,12 @@
 # Copyright (C) 2021 Richard Mitchell <richardjm+klipper@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-import json, logging, Queue as queue, threading, requests
+import json, logging, threading, requests
+
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
 
 MAX_MCU_SIZE = 500
 
